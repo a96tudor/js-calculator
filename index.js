@@ -4,6 +4,8 @@ let stored = null;
 let lastOpPressed = null;
 let pressedEqual = false;
 let lastValueEntered = null;
+let lastSign = null;
+let pressedDigit = false;
 
 const digits = [...Array(10).keys()].map((key) => key.toString());
 
@@ -56,6 +58,7 @@ function setUpEntryButtons() {
     for (let [digit, button] of Object.entries(elements.digitButtons))
         button.addEventListener("click", function () {
             elements.display.textContent += digit;
+            pressedDigit = true;
         });
 
     elements.separatorButton.addEventListener("click", function () {
@@ -73,24 +76,40 @@ function setUpEntryButtons() {
 function calculate() {
     const [first, second] = [stored.text, elements.display.textContent]
         .map((text) => parseFloat(text));
-    return operations[stored.opCode](first, second);
+    return operations[stored.opCode](first, stored.sign * second);
 }
 
 function calculateOnEqual() {
     const [first, second] = [elements.display.textContent, lastValueEntered]
         .map((text) => parseFloat(text));
-    return operations[lastOpPressed](first, second);
+    return operations[lastOpPressed](first, lastSign * second);
 }
 
 function setUpOperationButtons() {
     for (let [opCode, button] of Object.entries(elements.operationButtons))
         button.addEventListener("click", function () {
-            pressedEqual = false;
+            let sign = 1;
+            let text = elements.display.textContent;
+            if (stored && stored.text && stored.opCode)
+                text = calculate();
+            if (opCode == '-' && !pressedDigit) {
+                sign = -1;
+                text = stored ? stored.text : null;
+                opCode = lastOpPressed ? lastOpPressed : null;
+            }
+            if (stored && stored.text === null && stored.sign == -1)
+                // We are in the case where we have a negative number
+                // at the beginning, so we 
+                text = '-'.concat(elements.display.textContent);
             stored = {
-                text: stored ? calculate() : elements.display.textContent,
+                text,
                 opCode,
+                sign,
             };
+            pressedEqual = false;
+            pressedDigit = false;
             lastOpPressed = opCode;
+            lastSign = sign;
             elements.display.textContent = "";
         });
 }
