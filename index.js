@@ -4,9 +4,7 @@ let stored = null;
 let lastOpPressed = null;
 let pressedEqual = false;
 let lastValueEntered = null;
-let lastSign = null;
 let pressedDigit = false;
-let previewValues = [];
 
 const digits = [...Array(10).keys()].map((key) => key.toString());
 
@@ -53,15 +51,29 @@ const elements = {
     get calculateButton() {
         return document.getElementById("btn-calculate");
     },
-    get preview() {
-        return document.getElementById("preview");
+    get formula() {
+        return document.getElementById("formula");
     }
 }
 
 function setUpEntryButtons() {
     for (let [digit, button] of Object.entries(elements.digitButtons))
         button.addEventListener("click", function () {
-            elements.display.textContent += digit;
+            if (!pressedDigit && stored && stored.sign == -1) {
+                // We are dealing with a negative number here
+                elements.formula.textContent += "(-"
+                lastValueEntered = "-"
+            }
+            if (!lastValueEntered)
+                lastValueEntered = digit;
+            else
+                lastValueEntered += digit;
+            elements.formula.textContent += digit;
+            if (stored && stored.text && stored.text != "")
+                elements.display.textContent = calculate();
+            else
+                // We are on the very first number that is being typed
+                elements.display.textContent = lastValueEntered;
             pressedDigit = true;
         });
 
@@ -74,46 +86,44 @@ function setUpEntryButtons() {
     elements.clearButton.addEventListener("click", function () {
         elements.display.textContent = "";
         stored = null;
+        lastValueEntered = null;
+        lastOpPressed = null;
+        elements.formula.textContent = "";
+        elements.formula.style.display = "block";
     });
 }
 
 function calculate() {
-    const [first, second] = [stored.text, elements.display.textContent]
+    const [first, second] = [stored.text, lastValueEntered]
         .map((text) => parseFloat(text));
-    return operations[stored.opCode](first, stored.sign * second);
+    console.log(first, second, stored.opCode);
+    return operations[stored.opCode](first, second);
 }
 
 function calculateOnEqual() {
     const [first, second] = [elements.display.textContent, lastValueEntered]
         .map((text) => parseFloat(text));
-    return operations[lastOpPressed](first, lastSign * second);
-}
-
-function addPreviewValues(sign, opCode) {
-    if (!opCode)
-        return
-    let value = elements.display.textContent;
-    if (value == "")
-        return
-    if (sign == -1 && !pressedEqual)
-        // Displaying negative values as (-1) instead of -1 in order
-        // to improve preview readibility.
-        previewValues.push(["(-", value, ")"].join(''));
-    else if (!pressedEqual)
-        previewValues.push(value);
-    if (opCode != 'none') 
-        previewValues.push(opCode);
+    // Adding these operations to the formula field
+    elements.formula.textContent += lastOpPressed;
+    if (second < 0)
+        elements.formula.textContent += ["(", second, ")"].join();
+    else
+        elements.formula.textContent += lastValueEntered;
+    return operations[lastOpPressed](first, second);
 }
 
 function setUpOperationButtons() {
     for (let [opCode, button] of Object.entries(elements.operationButtons))
         button.addEventListener("click", function () {
             let sign = 1;
-            let text = elements.display.textContent;
             let opCodeToStore = opCode;
-            let previousSign = 1;
-            if (stored)
-                previousSign = stored.sign;
+            if (!pressedEqual)
+                elements.display.textContent = lastValueEntered; 
+            let text = elements.display.textContent;
+
+            if (stored && stored.sign == -1)
+                // Closing the brackets for negative numbers.
+                elements.formula.textContent += ")"
             if (stored && stored.text && stored.opCode)
                 text = calculate();
             if (opCode == '-' && !pressedDigit) {
@@ -121,36 +131,31 @@ function setUpOperationButtons() {
                 text = stored ? stored.text : null;
                 opCodeToStore = lastOpPressed ? lastOpPressed : null;
             }
-            if (stored && stored.text === null && stored.sign == -1)
-                // We are in the case where we have a negative number
-                // at the beginning, so we 
-                text = '-'.concat(elements.display.textContent);
-            addPreviewValues(previousSign, opCodeToStore);
+            if (opCodeToStore && sign != -1) {
+                elements.formula.textContent += opCodeToStore;
+                lastValueEntered = "";
+            }
+            if (text)
+                elements.display.textContent = text;
             stored = {
                 text,
                 opCode: opCodeToStore,
                 sign,
             };
-            elements.preview.style.display = "block";
-            elements.preview.textContent = previewValues.join('');
+            elements.formula.style.display = "block";
             pressedEqual = false;
             pressedDigit = false;
             lastOpPressed = opCodeToStore;
-            lastSign = sign;
-            elements.display.textContent = "";
         });
 }
 
 function setUpCalculateButton() {
     elements.calculateButton.addEventListener("click", function () {
-        if (!pressedEqual)
-            addPreviewValues(stored.sign, 'none');
-        elements.preview.style.display = "none";
+        elements.formula.style.display = "none";
         if (pressedEqual) {
             elements.display.textContent = calculateOnEqual();
             return;
         }
-        lastValueEntered = elements.display.textContent;
         pressedEqual = true;
         if (!stored)
             return;
