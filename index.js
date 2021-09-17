@@ -56,7 +56,10 @@ const elements = {
     }
 }
 
-function setUpEntryButtons() {
+/**
+ *  Setup all buttons that are used as digit inputs.
+ */
+function setupDigitButtons() {
     for (let [digit, button] of Object.entries(elements.digitButtons))
         button.addEventListener("click", function () {
             if (!pressedDigit && stored && stored.sign == -1) {
@@ -76,13 +79,23 @@ function setUpEntryButtons() {
                 elements.display.textContent = lastValueEntered;
             pressedDigit = true;
         });
+}
 
+/**
+ *  Setup the floating-point separator button.
+ */
+function setupSeparatorButton() {
     elements.separatorButton.addEventListener("click", function () {
         const text = elements.display.textContent;
         if (text.length && text.indexOf(".") === -1)
             elements.display.textContent += ".";
     });
+}
 
+/**
+ *  Setup the clear button (`C`).
+ */
+function setupClearButton() {
     elements.clearButton.addEventListener("click", function () {
         elements.display.textContent = "";
         stored = null;
@@ -93,69 +106,116 @@ function setUpEntryButtons() {
     });
 }
 
+/**
+ * Apply the appropriate operation and get the result.
+ * 
+ * @return {int} the result of applying the opperation.
+ */
 function calculate() {
     const [first, second] = [stored.text, lastValueEntered]
         .map((text) => parseFloat(text));
-    console.log(first, second, stored.opCode);
     return operations[stored.opCode](first, second);
 }
 
+/**
+ * Re-apply the last operation.
+ * 
+ * This implementation should be used to addres Problem 3, part 1.
+ * 
+ * @return {int} the result of applying the opperation.
+ */
 function calculateOnEqual() {
     const [first, second] = [elements.display.textContent, lastValueEntered]
         .map((text) => parseFloat(text));
+
     // Adding these operations to the formula field
     elements.formula.textContent += lastOpPressed;
     if (second < 0)
         elements.formula.textContent += ["(", second, ")"].join();
     else
         elements.formula.textContent += lastValueEntered;
+
     return operations[lastOpPressed](first, second);
 }
 
+/**
+ * Find the correct fields for the new `stored` value.
+ * 
+ * This function should be called when an operation button
+ * was pressed.
+ * 
+ * @param {string} opCode The opCode that was pressed.
+ *
+ */
+function setNewStoredValue(opCode) {
+    let sign = 1;
+    let text = elements.display.textContent;
+
+    if (opCode == '-' && !pressedDigit) {
+        // This `-` represents the start of a negative number
+        sign = -1;
+        text = stored ? stored.text : null;
+        opCode = lastOpPressed ? lastOpPressed : null; 
+    }
+
+    stored = {
+        text,
+        opCode,
+        sign
+    };
+}
+
+/**
+ *  Define actions that need to be taken when an operation button is pressed.
+ */
 function setUpOperationButtons() {
     for (let [opCode, button] of Object.entries(elements.operationButtons))
         button.addEventListener("click", function () {
-            let sign = 1;
-            let opCodeToStore = opCode;
             if (!pressedEqual)
+                // This is the default value that is added to `display`.
                 elements.display.textContent = lastValueEntered; 
-            let text = elements.display.textContent;
 
             if (stored && stored.sign == -1)
                 // Closing the brackets for negative numbers.
                 elements.formula.textContent += ")"
-            if (stored && stored.text && stored.opCode)
-                text = calculate();
-            if (opCode == '-' && !pressedDigit) {
-                sign = -1;
-                text = stored ? stored.text : null;
-                opCodeToStore = lastOpPressed ? lastOpPressed : null;
-            }
-            if (opCodeToStore && sign != -1) {
-                elements.formula.textContent += opCodeToStore;
+
+            // Renewing the value of `stored`.
+            setNewStoredValue(opCode);
+
+            if (stored.opCode && stored.sign != -1) {
+                // Adding the opCode element to the formula.
+                elements.formula.textContent += stored.opCode;
                 lastValueEntered = "";
             }
-            if (text)
-                elements.display.textContent = text;
-            stored = {
-                text,
-                opCode: opCodeToStore,
-                sign,
-            };
+            if (stored.text)
+                // Updating the value of the display, if necessary.
+                elements.display.textContent = stored.text;
+
             elements.formula.style.display = "block";
+
+            // Setting constants.
             pressedEqual = false;
             pressedDigit = false;
-            lastOpPressed = opCodeToStore;
+            lastOpPressed = stored.opCode;
         });
 }
 
+/**
+ *  Define how the pressing of the `=` button is handled.
+ */
 function setUpCalculateButton() {
     elements.calculateButton.addEventListener("click", function () {
+        // Hide the formula
         elements.formula.style.display = "none";
+
+        // If `=` has already been pressed once before, then we need to
+        // perform the actions described in Problem #3, part 1 - repeat
+        // the last operation that was done.
         if (pressedEqual) {
             elements.display.textContent = calculateOnEqual();
             return;
         }
+
         pressedEqual = true;
         if (!stored)
             return;
@@ -164,8 +224,15 @@ function setUpCalculateButton() {
     });
 }
 
-(() => {
-    setUpEntryButtons();
+/**
+ *  Setup all event listeners.
+ */
+function setup() {
+    setupDigitButtons();
+    setupSeparatorButton();
+    setupClearButton();
     setUpOperationButtons();
     setUpCalculateButton();
-})();
+}
+
+setup();
