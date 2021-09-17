@@ -1,6 +1,9 @@
 "use strict";
 
 let stored = null;
+let lastOpPressed = null;
+let pressedEqual = false;
+let lastValueEntered = null;
 
 const digits = [...Array(10).keys()].map((key) => key.toString());
 
@@ -73,19 +76,33 @@ function calculate() {
     return operations[stored.opCode](first, second);
 }
 
+function calculateOnEqual() {
+    const [first, second] = [elements.display.textContent, lastValueEntered]
+        .map((text) => parseFloat(text));
+    return operations[lastOpPressed](first, second);
+}
+
 function setUpOperationButtons() {
     for (let [opCode, button] of Object.entries(elements.operationButtons))
         button.addEventListener("click", function () {
+            pressedEqual = false;
             stored = {
                 text: stored ? calculate() : elements.display.textContent,
-                opCode
+                opCode,
             };
+            lastOpPressed = opCode;
             elements.display.textContent = "";
         });
 }
 
 function setUpCalculateButton() {
     elements.calculateButton.addEventListener("click", function () {
+        if (pressedEqual) {
+            elements.display.textContent = calculateOnEqual();
+            return;
+        }
+        lastValueEntered = elements.display.textContent;
+        pressedEqual = true;
         if (!stored)
             return;
         elements.display.textContent = calculate();
