@@ -150,6 +150,8 @@ function setNewStoredValue(opCode) {
     let sign = 1;
     let text = elements.display.textContent;
 
+    console.log(text);
+
     if (opCode == '-' && !pressedDigit) {
         // This `-` represents the start of a negative number
         sign = -1;
@@ -170,7 +172,7 @@ function setNewStoredValue(opCode) {
 function setUpOperationButtons() {
     for (let [opCode, button] of Object.entries(elements.operationButtons))
         button.addEventListener("click", function () {
-            if (!pressedEqual)
+            if (!pressedEqual && !stored)
                 // This is the default value that is added to `display`.
                 elements.display.textContent = lastValueEntered; 
 
