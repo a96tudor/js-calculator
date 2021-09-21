@@ -127,11 +127,10 @@ function calculate() {
 function calculateOnEqual() {
     const [first, second] = [elements.display.textContent, lastValueEntered]
         .map((text) => parseFloat(text));
-
     // Adding these operations to the formula field
     elements.formula.textContent += lastOpPressed;
     if (second < 0)
-        elements.formula.textContent += ["(", second, ")"].join();
+        elements.formula.textContent += '(' + second + ')';
     else
         elements.formula.textContent += lastValueEntered;
 
@@ -207,6 +206,10 @@ function setUpCalculateButton() {
     elements.calculateButton.addEventListener("click", function () {
         if (elements.display.textContent == "")
             return;
+        
+        if (stored && stored.sign == -1)
+            // Closing the brackets for negative numbers.
+            elements.formula.textContent += ")"
 
         // Hide the formula
         elements.formula.style.display = "none";
