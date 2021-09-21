@@ -205,6 +205,9 @@ function setUpOperationButtons() {
  */
 function setUpCalculateButton() {
     elements.calculateButton.addEventListener("click", function () {
+        if (elements.display.textContent == "")
+            return;
+
         // Hide the formula
         elements.formula.style.display = "none";
 
